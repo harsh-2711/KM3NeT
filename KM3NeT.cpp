@@ -46,10 +46,10 @@ using std:pair;
     Thus, the above logic is used to shift the point from one coordinate system to other.
 */
 
-array<float, 3> rotate(float theta, float phi,
-                       const array<float, 3>& pmt)
-{
-  array<float, 3> new_pmt;
+array <float, 3> rotate(float theta, float phi,
+                       const array <float, 3>& pmt) {
+
+  array <float, 3> new_pmt;
 
   // x = sin(theta)*cos(phi)
   // y = sin(theta)*sin(phi)
@@ -66,12 +66,28 @@ array<float, 3> rotate(float theta, float phi,
   new_pmt[0] = sin(org_theta + theta) * cos(org_phi + phi);
 
   // Y = sin(original theta + del theta) * sin(original phi + del phi)
-  new_pmt[1] - sin(org_theta + theta) * sin(org_phi + phi);
+  new_pmt[1] = sin(org_theta + theta) * sin(org_phi + phi);
 
   // Z = cos(original theta + del theta)
   new_pmt[2] = cos(org_theta + theta)
 
   return new_pmt;
+}
+
+// Using the exact reverse logic used in rotate method
+array <float, 3> test_rotate(float theta, float phi,
+                              const array <float, 3>& rotated_pmt) {
+
+  array <float, 3> org_pmt;
+
+  rot_phi = atan(rotated_pmt[1] / rotated_pmt[0])
+  rot_theta = atan(rotated_pmt[1] / (rotated_pmt[2] * sin(rot_phi)));
+
+  org_pmt[0] = sin(rot_theta - theta) * cos(rot_phi - phi);
+  org_pmt[1] = sin(rot_theta - theta) * sin(rot_phi - phi);
+  org_pmt[2] = cos(org_theta - theta);
+
+  return org_pmt;
 }
 
 

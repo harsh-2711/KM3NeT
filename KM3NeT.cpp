@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include <array>
 #include <vector>
 #include <random>
@@ -31,17 +33,45 @@ using std::vector;
 using std:pair;
 
 }
-array<array<float, 3>, 3> pmt_rotation(float, float)
-{
-  return {{{1.f, 0.f, 0.f},
-           {0.f, 1.f, 0.f},
-           {0.f, 0.f, 1.f}}};
-}
 
-array<float, 3> rotate(const array<array<float, 3>, 3>& rotation,
+/* Logic for rotation of PMTs
+
+  	Initially it is assumed and verified from the data that parameter r = 1
+
+    Now, changing the coordinate system based on new polar and azimuthal angle is basically rotating and/or
+    shifting the point or PMT by the angle through which the coordinate system is rotated. So, if the polar
+    angle is shifted by 2 degress than it's equivalent of changing the PMT direction in standard coordinates
+    by that many degress. Same thing goes for azimuthal angle.
+
+    Thus, the above logic is used to shift the point from one coordinate system to other.
+*/
+
+array<float, 3> rotate(float theta, float phi,
                        const array<float, 3>& pmt)
 {
-  return pmt;
+  array<float, 3> new_pmt;
+
+  // x = sin(theta)*cos(phi)
+  // y = sin(theta)*sin(phi)
+  // z = cos(theta)
+
+  org_phi = atan(pmt[1] / pmt[0])
+
+  org_theta = atan(pmt[1] / (pmt[2] * sin(org_phi)));
+
+  // del theta = change in theta w.r.t. theta in original coordinate system
+  // del phi = change in phi angle w.r.t. phi in original coordinate system
+
+  // X = sin(original theta + del theta) * cos(original phi + del phi)
+  new_pmt[0] = sin(org_theta + theta) * cos(org_phi + phi);
+
+  // Y = sin(original theta + del theta) * sin(original phi + del phi)
+  new_pmt[1] - sin(org_theta + theta) * sin(org_phi + phi);
+
+  // Z = cos(original theta + del theta)
+  new_pmt[2] = cos(org_theta + theta)
+
+  return new_pmt;
 }
 
 
@@ -71,7 +101,23 @@ int main() {
   cin >> num_strings;
 
   vector <int> DOM_ID, MOD_ID, DOM_IN_MOD, PMT_IN_DOM;
+
+  /* To store all the data in single variable to access it easily
+     Structure of storing data - 
+
+     Storing all the different DOMs data
+     | 
+     |     Storing data for a single DOM
+     |     |
+     |     |       Store the data in pair of index value with the corresponding positions and directions of PMT
+     |     |       |
+     |     |       |           Store the position and directions of single PMT in array format
+     |     |       |           |
+  */
   vector <vector <pair <int, vector <float> > > > data;
+
+  // PMTs are also stored differently for easy access for the particular problem statement
+  vector <array<float, 3> > PMTs;
 
   // 61*x + x = 128339 => x is approx 2070
   for(int i = 0; i < 2070; i++) {
@@ -100,6 +146,7 @@ int main() {
       cin>>index;
 
       vector<float> temp_data;
+      array<float, 3> extra_PMT;
 
       // Postion and Directions for each particle
       float x, y, z, x_d, y_d, z_d;
@@ -111,6 +158,10 @@ int main() {
       temp_data.push_back(y_d);
       temp_data.push_back(z_d);
 
+      extra_PMT[0] = x_d;
+      extra_PMT[1] = y_d;
+      extra_PMT[2] = z_d;
+
       // Calibration Constant
       float calibration_const;
       cin >> calibration_const;
@@ -119,16 +170,13 @@ int main() {
       pair <int, vector<float> > p (index, temp_data);
 
       sub_data.push_back(p);
-
+      PMTs.push_back(extra_PMT);
     }
 
     data.push_back(sub_data);
   }
 
   fclose(stdin);
-
-  // Example storage of PMT postions
-  map<int, array<float, 3>> PMTs;
 
   // Generate random hits
   // The rates are Hz per number of hits on neighbouring PMTs; this
@@ -166,12 +214,20 @@ int main() {
     for (size_t candidate = 0; candidate < n_candidates; ++candidate) {
 
       /*
-	    width >= 5 => S.D. >= 2.5
-	    So, taking Standard Deviation = 6 and Mean = 2, we get
-	    Range = [S.D. - 3 * Mean, S.D. + 3 * Mean] => Assuming almost 100% data lies in the range of [-3, 3]
-	    Thus, Range = [4, 16]
+  	    width >= 5 => S.D. >= 2.5
+  	    So, taking Standard Deviation = 6 and Mean = 2, we get
+  	    Range = [S.D. - 3 * Mean, S.D. + 3 * Mean] => Assuming almost 100% data lies in the range of [-3, 3]
+  	    Thus, Range = [0, 12]
       */
-      size_t hit_start = 0, hit_end = 12;
+
+      //                                        DOM indices
+      //                                        |            No. of PMTs per DOM
+      //                                        |            |
+      //                                        |            |     Range is 12 so keeping the buffer distance
+      //                                        |            |     |
+
+      int random_start = 0 + ( std::rand() % ( (11518-101) * 31 - 12 - 0 ) )
+      size_t hit_start = random_start, hit_end = random_start + 12;
 
       // Part 3: rotate selected hits over a grid of directions
       vector<array<float, 3>> result(hit_end - hit_start);
@@ -182,13 +238,10 @@ int main() {
           for (size_t i = hit_start; i < hit_end; ++i) {
 
             // Obtain PMT ID
-            size_t pmt_id = 0;
-
-            // Calculate rotation
-            auto rotation = pmt_rotation(theta, phi);
+            size_t pmt_id = i;
             
             // Apply rotation
-            result[i] = rotate(rotation, PMTs[pmt_id]);
+            result[i] = pmt_rotation(theta, phi, PMTs[pmt_id]);
           }
         }
       }
